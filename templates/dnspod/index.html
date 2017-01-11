@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}dnspod{% endblock %}
+
+{% block content %}
+  {% if error %}
+    <h1>{{ detail }}.</h1>
+  {% else %}
+    <table>
+      <thead>
+        <tr>
+          <th>Id</th>
+          <th>Name</th>
+          <th>Remark</th>
+          <th>Url</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for domain in domains %}
+        <tr>
+          <td>{{ domain.id }}</td>
+          <td>{{ domain.name }}</td>
+          <td>{{ domain.remark }}</td>
+          <td><a href="{% url "record_list" domain.id %}">Detail</td></td>
+        </tr>
+        {% endfor %}
+      <tbody>
+    </table>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}records{% endblock %}
+
+{% block content %}
+  {% if error %}
+    <h1>{{ detail }}.</h1>
+  {% else %}
+    <table style="width:100%;">
+      <thead>
+        <tr>
+          <th style="display:none;">Id</th>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Line</th>
+          <th>TTL</th>
+          <th>Value</th>
+          <th>Remark</th>
+          <th>Operation</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for record in records %}
+        <tr style="display:table-row;">
+          <td style="width:10%;display:none;">{{ record.id }}</td>
+          <td style="width:10%">{{ record.name }}</td>
+          <td style="width:10%">{{ record.type}}</td>
+          <td style="width:10%">{{ record.line }}</td>
+          <td style="width:10%">{{ record.ttl }}</td>
+          <td style="width:20%">{{ record.value }}</td>
+          <td style="width:5%">{{ record.remark }}</td>
+          <td style="width:15%">
+            <button type="button" class="edit" {% if record.value == "f1g1ns1.dnspod.net." or record.value == "f1g1ns2.dnspod.net." %}disabled{% endif %}>Edit</button> <button type="button" class="delete" {% if record.value == "f1g1ns1.dnspod.net." or record.value == "f1g1ns2.dnspod.net." %}disabled{% endif %}>Delete</button> {% if record.enabled == "1" %}<button type="button" class="enable" {% if record.value == "f1g1ns1.dnspod.net." or record.value == "f1g1ns2.dnspod.net." %}disabled{% endif %}>Disable</button>{% else %}<button type="button" class="enable" {% if record.value == "f1g1ns1.dnspod.net." or record.value == "f1g1ns2.dnspod.net." %}disabled{% endif %}>Enable</button> {% endif %}
+          </td>
+        </tr>
+        
+        <tr style="display:none;">
+          <td style="width:10%;display:none;">{{ record.id }}</td>
+          <td style="width:10%"><input type="text" value="{{ record.name }}" /></td>
+          <td style="width:10%">
+            <select>
+              <option value="A" {% if record.type == "A" %}selected{% endif %}>A</option>
+              <option value="CNAME" {% if record.type == "CNAME" %}selected{% endif %}>CNAME</option>
+              <option value="MX" {% if record.type == "MX" %}selected{% endif %}>MX</option>
+              <option value="NS" {% if record.type == "NS" %}selected{% endif %}>NS</option>
+              <option value="TXT" {% if record.type == "TXT" %}selected{% endif %}>TXT</option>
+            </select>
+          </td>
+          <td style="width:10%">
+            <select>
+              {% for line in lines %}
+                <option value="{{ line }}" {% if line == record.line %}selected{% endif %}>{{ line }}</option>
+              {% endfor %}
+            </select>
+          </td>
+          <td style="width:10%"><input type="text" value="{{ record.ttl }}" /></td>
+          <td style="width:20%"><input type="text" value="{{ record.value }}" /></td>
+          <td style="width:5%">{{ record.remark }}</td>
+          <td style="width:15%">
+            <button type="button" class="save">Save</button> <button type="button" class="cancel">Cancel</button>
+          </td>
+        </tr>
+
+        {% endfor %}
+      <tbody>
+    </table>
+  {% endif %}
+{% endblock %}
+
+{% block javascript %}
+  $(document).ready(function() {
+    $(".edit").click(function() {
+      $(this).parents('tr').css("display", "none");
+      $(this).parents('tr').next().css("display", "table-row");
+    });
+
+    $(".cancel").click(function() {
+      $(this).parents('tr').css("display", "none");
+      $(this).parents('tr').prev().css("display", "table-row");
+    });
+
+    $(".save").click(function() {
+      var record_id, name, type, line, ttl, value;
+      record_id = $(this).parents('tr').children().eq(0).text();
+      sub_domain = $(this).parents('tr').children().eq(1).children('input').val();
+      record_type = $(this).parents('tr').children().eq(2).children('select').val();
+      record_line = $(this).parents('tr').children().eq(3).children('select').val();
+      ttl = $(this).parents('tr').children().eq(4).children('input').val();
+      value = $(this).parents('tr').children().eq(5).children('input').val();
+
+      $(this).parents('tr').prev().children().eq(1).html(sub_domain);
+      $(this).parents('tr').prev().children().eq(2).html(record_type);
+      $(this).parents('tr').prev().children().eq(3).html(record_line);
+      $(this).parents('tr').prev().children().eq(4).html(ttl);
+      $(this).parents('tr').prev().children().eq(5).html(value);
+
+      $.ajax({
+        type: "POST",
+        url: '/' + {{ domain_id }} + '/records/' + record_id + '/edit/',
+        beforeSend: function(xhr, settings) {
+          xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token }}");
+        },
+        data: {
+          sub_domain: sub_domain,
+          record_type: record_type,
+          record_line: record_line,
+          ttl: ttl,
+          value: value
+        },
+        success: function(response) {
+          console.log(response);
+
+        },
+        error: function(xhr, ajaxOptions, thrownError) {
+          alert("error");
+        }
+      });
+
+      $(this).parents('tr').css("display", "none");
+      $(this).parents('tr').prev().css("display", "table-row");
+    });
+
+    $(".delete").click(function() {
+      var record_id;
+      record_id = $(this).parents('tr').children().eq(0).text();
+
+      $.ajax({
+        type: "POST",
+        url: '/' + {{ domain_id }} + '/records/' + record_id + '/delete/',
+        beforeSend: function(xhr, settings) {
+          xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token }}");
+        },
+        success: function(response) {
+          console.log(response);
+        },
+        error: function(xhr, ajaxOptions, thrownError) {
+          alert("error");
+        }
+      });
+
+      $(this).parents('tr').prev().remove();
+      $(this).parents('tr').remove();
+    });
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+  });    
+{% endblock %}
