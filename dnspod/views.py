@@ -1,27 +1,34 @@
 import json
+import copy
 import requests
 from django.shortcuts import render
 from django.http import HttpResponse
 
-def get_all_lines(domain_id, domain_grade="D_Free"):
-    headers = {
-        "UserAgent": "Dnspod client/0.0.1 (huzichunjohn@126.com)"
-    }
+DEFAULT_HEADERS = {
+    "UserAgent": "Dnspod client/0.0.1 (huzichunjohn@126.com)"
+}
 
-    payload = {
-        "login_token": "23432,7a266b74cdceb1dd49c97e860dbce685",
-        "format": "json",
-        "lang": "cn",
+DEFAULT_PAYLOADS = {
+    "login_token": "23432,7a266b74cdceb1dd49c97e860dbce685",
+    "format": "json",
+    "lang": "cn"
+}
+
+def get_all_lines(domain_id, domain_grade="D_Free"):
+    payload = copy.copy(DEFAULT_PAYLOADS)
+    payload.update({
         "domain_id": domain_id,
         "domain_grade": domain_grade
-    }
+    })
 
     try:
-        r = requests.post("https://dnsapi.cn/Record.Line", data=payload, headers=headers, timeout=1)  
-        r.raise_for_status()
-        data = r.json()
-        if data["status"]["code"] == "1":
-            return data["lines"]
+        r = requests.post("https://dnsapi.cn/Record.Line", data=payload, headers=DEFAULT_HEADERS, timeout=1)  
+        if r.ok:
+            data = r.json()
+            if data["status"]["code"] == "1":
+                return data["lines"]
+        else:
+            r.raise_for_status()
     except requests.exceptions.ConnectionError:
         # log
         pass
@@ -34,37 +41,27 @@ def get_all_lines(domain_id, domain_grade="D_Free"):
     except Exception as e:
         # log 
         pass
-    return []
 
 def index(request):
-    headers = {
-        "UserAgent": "Dnspod client/0.0.1 (huzichunjohn@126.com)"
-    }
-
-    payload = {
-        "login_token": "23432,7a266b74cdceb1dd49c97e860dbce685",
-        "format": "json",
-        "lang": "cn"
-    }
-
     error = False
     domains = []
     detail = ""
     try:
-        r = requests.post("https://dnsapi.cn/Domain.List", data=payload, headers=headers, timeout=1)  
-        r.raise_for_status()
-        data = r.json()
-        if data["status"]["code"] == "1":
-            for domain in data["domains"]:
-                domains.append({
-                    "id": int(domain["id"]),
-                    "name": domain["name"],
-                    "remark": domain["remark"]
-                })
-            
+        r = requests.post("https://dnsapi.cn/Domain.List", data=DEFAULT_PAYLOADS, headers=DEFAULT_HEADERS, timeout=1)  
+        if r.ok:
+            data = r.json()
+            if data["status"]["code"] == "1":
+                for domain in data["domains"]:
+                    domains.append({
+                        "id": int(domain["id"]),
+                        "name": domain["name"],
+                        "remark": domain["remark"]
+                    })
+            else:
+                error = True
+                detail = data["status"]["message"]
         else:
-            error = True
-            detail = data["status"]["message"]
+            r.raise_for_status()
     except requests.exceptions.ConnectionError:
         error = True
         detail = "connect error"
@@ -86,41 +83,35 @@ def index(request):
 def get_records_by_domain_id(request, domain_id):
     lines = get_all_lines(domain_id)
 
-    headers = {
-        "UserAgent": "Dnspod client/0.0.1 (huzichunjohn@126.com)"
-    }
-
-    payload = {
-        "login_token": "23432,7a266b74cdceb1dd49c97e860dbce685",
-        "format": "json",
-        "lang": "cn",
+    payload = copy.copy(DEFAULT_PAYLOADS)
+    payload.update({
         "domain_id": domain_id
-    }
+    })
 
     error = False
     records = []
     detail = ""
     try:
-        r = requests.post("https://dnsapi.cn/Record.List", data=payload, headers=headers, timeout=1)
-        r.raise_for_status()
-        data = r.json()
-        print data
-        if data["status"]["code"] == "1":
-            for record in data["records"]:
-                records.append({
-                    "id": record["id"],
-                    "name": record["name"],
-                    "type": record["type"],
-                    "ttl": record["ttl"],
-                    "line": record["line"],
-                    "value": record["value"],
-                    "remark": record["remark"],
-                    "enabled": record["enabled"]
-                })
-
+        r = requests.post("https://dnsapi.cn/Record.List", data=payload, headers=DEFAULT_HEADERS, timeout=1)
+        if r.ok:
+            data = r.json()
+            if data["status"]["code"] == "1":
+                for record in data["records"]:
+                    records.append({
+                        "id": record["id"],
+                        "name": record["name"],
+                        "type": record["type"],
+                        "ttl": record["ttl"],
+                        "line": record["line"],
+                        "value": record["value"],
+                        "remark": record["remark"],
+                        "enabled": record["enabled"]
+                    })
+            else:
+                error = True
+                detail = data["status"]["message"]
         else:
-            error = True
-            detail = data["status"]["message"]
+            r.raise_for_status()
     except requests.exceptions.ConnectionError:
         error = True
         detail = "connect error"
@@ -138,7 +129,6 @@ def get_records_by_domain_id(request, domain_id):
         error = True
         detail = "unknown"
 
-    print records
     return render(request, 'dnspod/records.html', {"domain_id": domain_id, "records": records, "lines": lines, "error": error, "detail": detail})
 
 def edit_record(request, domain_id, record_id):
@@ -148,14 +138,8 @@ def edit_record(request, domain_id, record_id):
     record_line = request.POST["record_line"]
     ttl = int(request.POST["ttl"])
 
-    headers = {
-        "UserAgent": "Dnspod client/0.0.1 (huzichunjohn@126.com)"
-    }
-
-    payload = {
-        "login_token": "23432,7a266b74cdceb1dd49c97e860dbce685",
-        "format": "json",
-        "lang": "cn",
+    payload = copy.copy(DEFAULT_PAYLOADS)
+    payload.update({
         "domain_id": int(domain_id),
         "record_id": record_id,
         "sub_domain": sub_domain,
@@ -163,16 +147,18 @@ def edit_record(request, domain_id, record_id):
         "record_type": record_type,
         "record_line": record_line,
         "ttl": ttl
-    }
+    })    
 
     try:
-        r = requests.post("https://dnsapi.cn/Record.Modify", data=payload, headers=headers, timeout=1)  
-        r.raise_for_status()
-        data = r.json()
-        if data["status"]["code"] == "1":
-            return HttpResponse(json.dumps(data), content_type="application/json")
+        r = requests.post("https://dnsapi.cn/Record.Modify", data=payload, headers=DEFAULT_HEADERS, timeout=1)  
+        if r.ok:
+            data = r.json()
+            if data["status"]["code"] == "1":
+                return HttpResponse(json.dumps(data), content_type="application/json")
+            else:
+                return HttpResponse("error")
         else:
-            return HttpResponse("error")
+            r.raise_for_status()
     except requests.exceptions.ConnectionError:
         # log
         raise
@@ -187,26 +173,22 @@ def edit_record(request, domain_id, record_id):
         raise
 
 def delete_record(reqeust, domain_id, record_id):
-    headers = {
-        "UserAgent": "Dnspod client/0.0.1 (huzichunjohn@126.com)"
-    }
-
-    payload = {
-        "login_token": "23432,7a266b74cdceb1dd49c97e860dbce685",
-        "format": "json",
-        "lang": "cn",
+    payload = copy.copy(DEFAULT_PAYLOADS)
+    payload.update({
         "domain_id": int(domain_id),
         "record_id": record_id
-    }
+    })
 
     try:
-        r = requests.post("https://dnsapi.cn/Record.Remove", data=payload, headers=headers, timeout=1)
-        r.raise_for_status()
-        data = r.json()
-        if data["status"]["code"] == "1":
-            return HttpResponse(json.dumps(data), content_type="application/json")
+        r = requests.post("https://dnsapi.cn/Record.Remove", data=payload, headers=DEFAULT_HEADERS, timeout=1)
+        if r.ok:
+            data = r.json()
+            if data["status"]["code"] == "1":
+                return HttpResponse(json.dumps(data), content_type="application/json")
+            else:
+                return HttpResponse("error")
         else:
-            return HttpResponse("error")
+            r.raise_for_status()
     except requests.exceptions.ConnectionError:
         # log
         raise
