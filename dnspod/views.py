@@ -203,4 +203,36 @@ def delete_record(reqeust, domain_id, record_id):
         raise
 
 def edit_record_status(request, domain_id, record_id):
-    pass
+    status = request.POST["status"]
+
+    payload = copy.copy(DEFAULT_PAYLOADS)
+    payload.update({
+        "domain_id": int(domain_id),
+        "record_id": record_id,
+        "status": status
+    })
+
+    try:
+        r = requests.post("https://dnsapi.cn/Record.Status", data=payload, headers=DEFAULT_HEADERS, timeout=1)
+        if r.ok:
+            data = r.json()
+            print data["status"]["code"]
+            if data["status"]["code"] == "1":
+                return HttpResponse(json.dumps(data), content_type="application/json")
+            else:
+                return HttpResponse("error")
+        else:
+            r.raise_for_status()
+    except requests.exceptions.ConnectionError:
+        # log
+        raise
+    except requests.exceptions.Timeout:
+        # log
+        raise
+    except requests.exceptions.HTTPError:
+        # log
+        raise
+    except Exception as e:
+        # log
+        raise
+

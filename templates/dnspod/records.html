@@ -29,7 +29,7 @@
           <td style="width:20%">{{ record.value }}</td>
           <td style="width:5%">{{ record.remark }}</td>
           <td style="width:15%">
-            <button type="button" class="edit" {% if record.value == "f1g1ns1.dnspod.net." or record.value == "f1g1ns2.dnspod.net." %}disabled{% endif %}>Edit</button> <button type="button" class="delete" {% if record.value == "f1g1ns1.dnspod.net." or record.value == "f1g1ns2.dnspod.net." %}disabled{% endif %}>Delete</button> {% if record.enabled == "1" %}<button type="button" class="enable" {% if record.value == "f1g1ns1.dnspod.net." or record.value == "f1g1ns2.dnspod.net." %}disabled{% endif %}>Disable</button>{% else %}<button type="button" class="enable" {% if record.value == "f1g1ns1.dnspod.net." or record.value == "f1g1ns2.dnspod.net." %}disabled{% endif %}>Enable</button> {% endif %}
+            <button type="button" class="edit" {% if record.value == "f1g1ns1.dnspod.net." or record.value == "f1g1ns2.dnspod.net." %}disabled{% endif %}>Edit</button> <button type="button" class="delete" {% if record.value == "f1g1ns1.dnspod.net." or record.value == "f1g1ns2.dnspod.net." %}disabled{% endif %}>Delete</button> <button type="button" class="disable" {% if record.value == "f1g1ns1.dnspod.net." or record.value == "f1g1ns2.dnspod.net." %}disabled{% endif %} {% if record.enabled == "1" %}style="display:table-row;"{% else %}style="display:none;"{% endif %}>Disable</button> <button type="button" class="enable" {% if record.value == "f1g1ns1.dnspod.net." or record.value == "f1g1ns2.dnspod.net." %}disabled{% endif %} {% if record.enabled == "1" %}style="display:none;"{% else %}style="display:table-row;"{% endif %}>Enable</button>
           </td>
         </tr>
         
@@ -142,9 +142,62 @@
     });
 
 
+    $(".enable").click(function() {
+        var that = this;
+        var record_id;
+        record_id = $(this).parents('tr').children().eq(0).text();
 
+        $.ajax({
+            type: "POST",
+            url: '/' + {{ domain_id }} + '/records/' + record_id + '/enable/',
+            beforeSend: function(xhr, settings) {
+                xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token }}");
+            },
+            data: {
+                status: "enable"
+            },
+            success: function(response) {
+                console.log(response);
+                if (response.status.code == "1") {
+                    $(that).hide();
+                    $(that).prev().show();
+                }
+            },
+            error: function(xhr, ajaxOptions, thrownError) {
+                alert("error");
+            }
+        });
 
+    });
 
+    $(".disable").click(function() {
+        var that = this;
+        var record_id;
+        record_id = $(this).parents('tr').children().eq(0).text();
+
+        $.ajax({
+            type: "POST",
+            url: '/' + {{ domain_id }} + '/records/' + record_id + '/enable/',
+            beforeSend: function(xhr, settings) {
+                xhr.setRequestHeader("X-CSRFToken", "{{ csrf_token }}");
+            },
+            data: {
+                status: "disable"
+            },
+            success: function(response) {
+                console.log(response);
+                if (response.status.code == "1") {
+                    $(that).hide();
+                    $(that).next().show();
+                }
+            },
+            error: function(xhr, ajaxOptions, thrownError) {
+                alert("error");
+            }
+        });
+
+    });
+    
 
 
 
